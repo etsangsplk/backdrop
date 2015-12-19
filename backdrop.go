@@ -1,3 +1,7 @@
+// Copyright 2015 - Husobee Associates, LLC.  All rights reserved.
+// Use of this source code is governed by The MIT License, which can be found
+// in the LICENSE file included.
+
 // Package backdrop - Go Web Framework Agnostic Context Management
 // We all want to retain context through our web application, and
 // many are uncomfortable tying themselves to a particular framework.
