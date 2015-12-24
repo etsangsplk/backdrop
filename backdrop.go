@@ -11,6 +11,7 @@ package backdrop
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"sync"
 
@@ -259,7 +260,14 @@ Loop:
 				message.RespondTo <- ctx
 				continue
 			}
-			message.RespondTo <- nil
+			// a context was never created for this request, create a cancel
+			// context for the caller
+			ctx, cancel := context.WithCancel(baseCtx)
+			ctx = context.WithValue(ctx, cancelKey, cancel)
+			// set this request context on the global context
+			contexts[message.Request] = ctx
+			// reply to note set is finished
+			message.RespondTo <- ctx
 
 		case message := <-fetch:
 			// fetch a value from the context
@@ -272,19 +280,29 @@ Loop:
 
 		case message := <-kill:
 			// evict the context from the map
-			if ctx, ok := contexts[message.Request]; ok && ctx != nil {
-				// if there is a request context, use it's cancel function to end that context
-				if cancel, ok := ctx.Value(cancelKey).(context.CancelFunc); ok {
-					cancel()
-					<-ctx.Done()
-					delete(contexts, message.Request)
+			if v, exists := contexts[message.Request]; exists {
+				fmt.Println(exists, contexts)
+				if ctx, ok := v.(context.Context); ok && ctx != nil {
+
+					fmt.Println("here, ctx: ", ctx)
+
+					// if there is a request context, use it's cancel function to end that context
+					if v := ctx.Value(cancelKey); v != nil {
+						if cancel, ok := v.(context.CancelFunc); ok {
+							cancel()
+							<-ctx.Done()
+							delete(contexts, message.Request)
+						}
+					}
 				}
 			}
 			message.RespondTo <- nil
 
 		case message := <-setCtx:
 			// set the context outright
-			contexts[message.Request] = message.Context
+			if _, exists := contexts[message.Request]; exists {
+				contexts[message.Request] = message.Context
+			}
 			message.RespondTo <- nil
 
 		case message := <-set:
