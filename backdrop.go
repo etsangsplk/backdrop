@@ -11,7 +11,6 @@ package backdrop
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"sync"
 
@@ -281,10 +280,7 @@ Loop:
 		case message := <-kill:
 			// evict the context from the map
 			if v, exists := contexts[message.Request]; exists {
-				fmt.Println(exists, contexts)
 				if ctx, ok := v.(context.Context); ok && ctx != nil {
-
-					fmt.Println("here, ctx: ", ctx)
 
 					// if there is a request context, use it's cancel function to end that context
 					if v := ctx.Value(cancelKey); v != nil {
